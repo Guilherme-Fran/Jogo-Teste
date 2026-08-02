@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#87ceeb">
+<title>Galinha dos Ovos 🐔</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    touch-action: manipulation;
+  }
+
+  body {
+    background: linear-gradient(#87ceeb 0%, #b6e3f4 55%, #7ec850 55%, #6bb843 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  /* Nuvens decorativas */
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 50px;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+  .cloud::before, .cloud::after {
+    content: "";
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .cloud1 { width: 90px; height: 30px; top: 8%; left: 10%; animation: drift 30s linear infinite; }
+  .cloud1::before { width: 45px; height: 45px; top: -20px; left: 12px; }
+  .cloud1::after  { width: 35px; height: 35px; top: -14px; left: 45px; }
+  .cloud2 { width: 70px; height: 24px; top: 18%; right: 12%; animation: drift 42s linear infinite reverse; }
+  .cloud2::before { width: 34px; height: 34px; top: -15px; left: 10px; }
+  .cloud2::after  { width: 28px; height: 28px; top: -10px; left: 34px; }
+
+  @keyframes drift {
+    from { transform: translateX(-20px); }
+    50%  { transform: translateX(20px); }
+    to   { transform: translateX(-20px); }
+  }
+
+  #placar {
+    margin-top: env(safe-area-inset-top, 12px);
+    padding: 10px 26px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 40px;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #d2691e;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+    z-index: 5;
+    white-space: nowrap;
+  }
+
+  #palco {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  #galinha {
+    font-size: 40vw;
+    line-height: 1;
+    cursor: pointer;
+    filter: drop-shadow(0 12px 10px rgba(0,0,0,0.25));
+    transition: transform 0.08s ease;
+    will-change: transform;
+  }
+  @media (min-aspect-ratio: 1/1) {
+    #galinha { font-size: 42vh; }
+  }
+
+  #galinha.ciscando {
+    animation: cisca 0.35s ease;
+  }
+  @keyframes cisca {
+    0%   { transform: scale(1) rotate(0deg); }
+    30%  { transform: scale(0.86) rotate(-6deg) translateY(14px); }
+    60%  { transform: scale(1.08) rotate(5deg) translateY(-10px); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  #dica {
+    position: absolute;
+    bottom: 12%;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.35);
+    background: rgba(210,105,30,0.85);
+    padding: 8px 22px;
+    border-radius: 30px;
+    animation: pulsa 1.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes pulsa {
+    0%,100% { transform: translateY(0); opacity: 0.9; }
+    50%     { transform: translateY(-8px); opacity: 1; }
+  }
+
+  /* Ovos que caem */
+  .ovo {
+    position: absolute;
+    font-size: 3rem;
+    pointer-events: none;
+    z-index: 4;
+    animation: cai 1.4s cubic-bezier(0.45, 0, 0.6, 1) forwards;
+  }
+  @keyframes cai {
+    0%   { transform: translateY(-10px) scale(0.4) rotate(0deg); opacity: 0; }
+    18%  { transform: translateY(0) scale(1.1) rotate(-8deg); opacity: 1; }
+    100% { transform: translateY(48vh) scale(1) rotate(20deg); opacity: 0; }
+  }
+
+  /* Estrelinhas de comemoração */
+  .faisca {
+    position: absolute;
+    font-size: 2rem;
+    pointer-events: none;
+    z-index: 6;
+    animation: sobe 0.9s ease-out forwards;
+  }
+  @keyframes sobe {
+    0%   { transform: translate(0,0) scale(0.5); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1.3); opacity: 0; }
+  }
+
+  #rodape {
+    margin-bottom: env(safe-area-inset-bottom, 10px);
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+  <div class="cloud cloud1"></div>
+  <div class="cloud cloud2"></div>
+
+  <div id="placar">🥚 <span id="contador">0</span></div>
+
+  <div id="palco">
+    <div id="galinha">🐔</div>
+    <div id="dica">Toque na galinha! 👆</div>
+  </div>
+
+  <div id="rodape">Feito com ❤️ para você brincar</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var galinha  = document.getElementById("galinha");
+  var palco    = document.getElementById("palco");
+  var contador = document.getElementById("contador");
+  var dica     = document.getElementById("dica");
+  var total    = 0;
+  var dicaVisivel = true;
+
+  // ---- Áudio: gerado na hora, sem arquivos externos ----
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var ctx = null;
+
+  function garanteAudio() {
+    if (!AudioCtx) return;
+    if (!ctx) ctx = new AudioCtx();
+    if (ctx.state === "suspended") ctx.resume();
+  }
+
+  // "Có-có-có" da galinha: sequência de bipes que sobem e descem
+  function somDaGalinha() {
+    if (!ctx) return;
+    var agora = ctx.currentTime;
+    var notas = [520, 680, 610, 760, 540];
+    notas.forEach(function (freq, i) {
+      var t = agora + i * 0.09;
+      var osc = ctx.createOscillator();
+      var gan = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.08);
+      gan.gain.setValueAtTime(0.0001, t);
+      gan.gain.exponentialRampToValueAtTime(0.35, t + 0.015);
+      gan.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      osc.connect(gan).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.1);
+    });
+
+    // "Cocorocó" final mais agudo e engraçado
+    var tf = agora + notas.length * 0.09;
+    var o2 = ctx.createOscillator();
+    var g2 = ctx.createGain();
+    o2.type = "sawtooth";
+    o2.frequency.setValueAtTime(700, tf);
+    o2.frequency.exponentialRampToValueAtTime(1100, tf + 0.18);
+    o2.frequency.exponentialRampToValueAtTime(500, tf + 0.35);
+    g2.gain.setValueAtTime(0.0001, tf);
+    g2.gain.exponentialRampToValueAtTime(0.3, tf + 0.03);
+    g2.gain.exponentialRampToValueAtTime(0.0001, tf + 0.36);
+    o2.connect(g2).connect(ctx.destination);
+    o2.start(tf);
+    o2.stop(tf + 0.38);
+  }
+
+  // "Plop" do ovo caindo
+  function somDoOvo() {
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    var osc = ctx.createOscillator();
+    var gan = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+    gan.gain.setValueAtTime(0.0001, t);
+    gan.gain.exponentialRampToValueAtTime(0.4, t + 0.01);
+    gan.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    osc.connect(gan).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.22);
+  }
+
+  // ---- Elementos visuais ----
+  var OVOS = ["🥚", "🥚", "🥚", "🐣", "🌟"]; // de vez em quando um pintinho!
+
+  function soltaOvo() {
+    var ovo = document.createElement("div");
+    ovo.className = "ovo";
+    ovo.textContent = OVOS[Math.floor(Math.random() * OVOS.length)];
+    var rect = palco.getBoundingClientRect();
+    var meio = rect.width / 2;
+    var desvio = (Math.random() - 0.5) * rect.width * 0.35;
+    ovo.style.left = (meio + desvio) + "px";
+    ovo.style.top  = (rect.height * 0.55) + "px";
+    palco.appendChild(ovo);
+    setTimeout(function () { ovo.remove(); }, 1500);
+  }
+
+  function faiscas(x, y) {
+    var simbolos = ["✨", "⭐", "💛", "🌟"];
+    for (var i = 0; i < 5; i++) {
+      var f = document.createElement("div");
+      f.className = "faisca";
+      f.textContent = simbolos[i % simbolos.length];
+      f.style.left = x + "px";
+      f.style.top  = y + "px";
+      var ang = (Math.PI * 2 * i) / 5;
+      f.style.setProperty("--dx", (Math.cos(ang) * 90) + "px");
+      f.style.setProperty("--dy", (Math.sin(ang) * 90 - 40) + "px");
+      document.body.appendChild(f);
+      (function (el) { setTimeout(function () { el.remove(); }, 900); })(f);
+    }
+  }
+
+  var travado = false;
+
+  function ciscar(evento) {
+    if (evento) evento.preventDefault();
+    garanteAudio();
+
+    if (dicaVisivel) { dica.style.display = "none"; dicaVisivel = false; }
+
+    // Animação da galinha (reinicia mesmo em toques rápidos)
+    galinha.classList.remove("ciscando");
+    void galinha.offsetWidth;
+    galinha.classList.add("ciscando");
+
+    somDaGalinha();
+
+    // Solta os ovos com um pequeno atraso (parece que "botou")
+    if (!travado) {
+      travado = true;
+      setTimeout(function () { travado = false; }, 120);
+    }
+    var quantos = 1 + Math.floor(Math.random() * 2); // 1 ou 2 ovos
+    for (var i = 0; i < quantos; i++) {
+      (function (idx) {
+        setTimeout(function () {
+          soltaOvo();
+          somDoOvo();
+          total++;
+          contador.textContent = total;
+        }, 180 + idx * 130);
+      })(i);
+    }
+
+    // Faíscas no ponto do toque
+    var px, py;
+    if (evento && evento.changedTouches && evento.changedTouches[0]) {
+      px = evento.changedTouches[0].clientX;
+      py = evento.changedTouches[0].clientY;
+    } else if (evento && evento.clientX != null) {
+      px = evento.clientX;
+      py = evento.clientY;
+    } else {
+      var r = galinha.getBoundingClientRect();
+      px = r.left + r.width / 2;
+      py = r.top + r.height / 2;
+    }
+    faiscas(px, py);
+  }
+
+  // Toque tem prioridade no celular; clique cobre o desktop.
+  galinha.addEventListener("touchstart", ciscar, { passive: false });
+  galinha.addEventListener("click", function (e) {
+    // Evita duplicar quando o toque já disparou
+    if (e.detail === 0) return; // teclado
+    ciscar(e);
+  });
+
+  // Destrava o áudio no primeiro toque em qualquer lugar (política dos navegadores)
+  document.addEventListener("touchstart", garanteAudio, { once: true });
+  document.addEventListener("click", garanteAudio, { once: true });
+
+  // Evita zoom por duplo-toque
+  document.addEventListener("dblclick", function (e) { e.preventDefault(); });
+})();
+</script>
+</body>
+</html>
