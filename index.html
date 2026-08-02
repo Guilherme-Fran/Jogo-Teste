@@ -189,9 +189,16 @@
   var ctx = null;
 
   function garanteAudio() {
-    if (!AudioCtx) return;
-    if (!ctx) ctx = new AudioCtx();
-    if (ctx.state === "suspended") ctx.resume();
+    try {
+      if (!AudioCtx) return;
+      if (!ctx) ctx = new AudioCtx();
+      if (ctx.state === "suspended") ctx.resume();
+      // Toca um clique mudo para "destravar" o áudio no iOS
+      var b = ctx.createBufferSource();
+      b.buffer = ctx.createBuffer(1, 1, 22050);
+      b.connect(ctx.destination);
+      b.start(0);
+    } catch (e) { /* áudio indisponível: o jogo continua sem som */ }
   }
 
   // "Có-có-có" da galinha: sequência de bipes que sobem e descem
@@ -282,7 +289,7 @@
   var travado = false;
 
   function ciscar(evento) {
-    if (evento) evento.preventDefault();
+    if (evento && evento.cancelable) evento.preventDefault();
     garanteAudio();
 
     if (dicaVisivel) { dica.style.display = "none"; dicaVisivel = false; }
@@ -292,7 +299,7 @@
     void galinha.offsetWidth;
     galinha.classList.add("ciscando");
 
-    somDaGalinha();
+    try { somDaGalinha(); } catch (e) {}
 
     // Solta os ovos com um pequeno atraso (parece que "botou")
     if (!travado) {
@@ -304,7 +311,7 @@
       (function (idx) {
         setTimeout(function () {
           soltaOvo();
-          somDoOvo();
+          try { somDoOvo(); } catch (e) {}
           total++;
           contador.textContent = total;
         }, 180 + idx * 130);
@@ -327,20 +334,34 @@
     faiscas(px, py);
   }
 
-  // Toque tem prioridade no celular; clique cobre o desktop.
-  galinha.addEventListener("touchstart", ciscar, { passive: false });
-  galinha.addEventListener("click", function (e) {
-    // Evita duplicar quando o toque já disparou
-    if (e.detail === 0) return; // teclado
+  // Tocar em QUALQUER lugar da tela conta (mais fácil para criança pequena).
+  // Um único caminho de entrada, evitando o clique "fantasma" que o iOS
+  // dispara depois do toque (que causava toque duplo ou nenhuma reação).
+  var toqueRecente = false;
+  var timerToque = null;
+
+  // touchend é confiável no iOS e não depende do clique "fantasma"
+  document.addEventListener("touchend", function (e) {
+    toqueRecente = true;
+    if (timerToque) clearTimeout(timerToque);
+    timerToque = setTimeout(function () { toqueRecente = false; }, 700);
     ciscar(e);
+  }, { passive: false });
+
+  // Cobre desktop (mouse) e qualquer caso em que o touch não dispare.
+  // Ignora o "click" sintético que o iOS emite logo após o touch.
+  document.addEventListener("click", function (e) {
+    if (toqueRecente) return;
+    ciscar(e);
+  }, false);
+
+  // Evita zoom/seleção por duplo-toque
+  document.addEventListener("dblclick", function (e) {
+    if (e.cancelable) e.preventDefault();
   });
-
-  // Destrava o áudio no primeiro toque em qualquer lugar (política dos navegadores)
-  document.addEventListener("touchstart", garanteAudio, { once: true });
-  document.addEventListener("click", garanteAudio, { once: true });
-
-  // Evita zoom por duplo-toque
-  document.addEventListener("dblclick", function (e) { e.preventDefault(); });
+  document.addEventListener("gesturestart", function (e) {
+    if (e.cancelable) e.preventDefault();
+  });
 })();
 </script>
 </body>
